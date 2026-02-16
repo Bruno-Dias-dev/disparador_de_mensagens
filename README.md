@@ -22,3 +22,19 @@ Processamento:
 Envio:
   - Texto → Evolution API
   - Imagem → Evolution API
+
+🛠️ Tecnologias Utilizadas
+n8n
+Webhooks
+HTML + Bootstrap 5
+JavaScript
+Python (Node Code)
+Evolution API
+imgbb API
+
+Possíveis Melhorias Futuras
+📄 Importar lista via CSV
+📊 Dashboard de métricas
+🔐 Autenticação na interface
+🗂️ Registro em banco de dados
+🧠 Personalização de mensagem (ex: {{nome}})
