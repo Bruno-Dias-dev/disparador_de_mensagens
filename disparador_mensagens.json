@@ -1,0 +1,459 @@
+{
+  "name": "disparador_mensagens",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "1bc99872-d53b-4b1f-bd6f-aece7dbbbd5c55",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -816,
+        0
+      ],
+      "id": "8333dbf7-4212-4114-9bd3-07a626c05865",
+      "name": "Webhook",
+      "webhookId": "1bc99872-d53b-4b1f-bd6f-aece7dbbbd5c"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -464,
+        0
+      ],
+      "id": "c517e6bd-d324-4e29-a774-fa6bd3716db3",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>Disparador de Mensagens</title>\n  <!-- Bootstrap -->\n  <link\n    href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\"\n    rel=\"stylesheet\"\n  />\n\n  <style>\n    body {\n      background-color: #f4f4f9;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      min-height: 100vh;\n    }\n\n    .container {\n      background-color: #fff;\n      max-width: 480px;\n      width: 100%;\n      border-radius: 12px;\n      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);\n      padding: 24px;\n    }\n\n    .form-header {\n      text-align: center;\n      margin-bottom: 20px;\n    }\n\n    .form-header h3 {\n      font-size: 26px;\n      font-weight: 600;\n      color: #333;\n    }\n\n    textarea {\n      resize: none;\n      height: 100px;\n    }\n\n    #conexao {\n        height: 50px;\n    }\n\n    .progress {\n      height: 10px;\n    }\n\n    .btn-disparar {\n      background-color: #f57133;\n      border: none;\n      color: white;\n      font-weight: 600;\n    }\n\n    .btn-disparar:hover {\n      background-color: #e0642a;\n    }\n\n    #status {\n      font-size: 14px;\n      text-align: center;\n      margin-top: 8px;\n      color: #555;\n    }\n\n    #datetimes {\n      margin-bottom: 10px;\n      text-align: center;\n    }\n\n    .upload-container {\n        text-align: center;\n        display: block;\n    }\n  </style>\n</head>\n\n<body>\n  <div class=\"container\">\n    <div class=\"form-header\">\n      <h3>Disparador de Mensagens</h3>\n    </div>\n\n    <div class=\"form-body\">\n      <form id=\"disparadorForm\">\n        <!-- Números -->\n        <div class=\"mb-3\">\n          <label for=\"numeros\" class=\"form-label\">Números (um por linha):</label>\n          <textarea\n            id=\"numeros\"\n            class=\"form-control\"\n            placeholder=\"Ex: 5591999999999\"\n            required\n          ></textarea>\n        </div>\n\n        <!-- Conexão -->\n        <div class=\"\">\n            <label>Conexão: </label>\n            <textarea\n            id=\"conexao\"\n            class=\"form-control\"\n            placeholder=\"Escreva aqui a conexão que deseja enviar esta mensagem\"\n            required\n            ></textarea>        \n        </div>\n\n        <!-- Mensagem -->\n        <div class=\"mb-3\">\n          <label for=\"mensagem\" class=\"form-label\">Mensagem:</label>\n          <textarea\n            id=\"mensagem\"\n            class=\"form-control\"\n            placeholder=\"Digite a mensagem que será enviada\"\n            required\n          ></textarea>\n        </div>\n        \n        <div id=\"date\">  \n          <input\n          type=\"datetime-local\"\n          id=\"datetimes\"\n          class=\"form-control\">\n        </div>\n\n        <div id=\"date\" class=\"upload-container\">\n                <input\n                type=\"file\"\n                id=\"image\"\n                name=\"image\"\n                class=\"form-control\"\n                accept=\"image/*\"/>\n        </div>\n\n        <!-- Barra de progresso -->\n        <div class=\"mb-3\">\n          <label class=\"form-label\">Progresso:</label>\n          <div class=\"progress\">\n            <div\n              id=\"progressBar\"\n              class=\"progress-bar bg-success\"\n              role=\"progressbar\"\n              style=\"width: 0%\"\n            ></div>\n          </div>\n          <div id=\"status\">Aguardando início...</div>\n        </div>\n\n        <!-- Botão -->\n        <button type=\"submit\" class=\"btn btn-disparar w-100\">\n          Disparar Mensagens\n        </button>\n      </form>\n    </div>\n  </div>\n\n<script> \n    const form = document.getElementById(\"disparadorForm\");\n    const progressBar = document.getElementById(\"progressBar\");\n    const statusText = document.getElementById(\"status\");\n\n    // Quando esse formulário for enviado, execute esse código.\n    form.addEventListener(\"submit\", async (e) => {\n      e.preventDefault();\n\n      const date = document.getElementById(\"datetimes\").value;\n      const imagem = document.getElementById(\"image\").files[0];\n\n      console.log(\"Data:\", date);\n      console.log(\"Imagem: \", imagem);\n\n      // Tratamento dos números\n      const numeros = document\n        .getElementById(\"numeros\")\n        .value.split(\"\\n\")  // Pega valor e quebra a cada enter\n        .map((n) => n.trim()) // Remove espaços antes e depois\n        .filter((n) => n !== \"\"); // Remove linhas vazias\n        \n      const conexaoWhatsapp = document.getElementById(\"conexao\").value.trim();\n      const texto = document.getElementById(\"mensagem\").value.trim();\n\n      // Se não tiver números ou se não tiver mensagem…”\n      if (!numeros.length || !texto) {\n        alert(\"Preencha todos os campos corretamente.\");\n        return;\n      }\n\n      let progress = 0;\n      progressBar.style.width = \"0%\";\n      statusText.textContent = \"Iniciando disparo...\";\n\n      for (let i = 0; i < numeros.length; i++) {\n        const numero = `${numeros[i]}@s.whatsapp.net`;  // Alteração para formato padrão para envio e pega o i da possição e relaciona com número\n        statusText.textContent = `Enviando ${i + 1} de ${numeros.length} (${numero})...`;\n\n        try {\n          const formData = new FormData();\n          formData.append(\"numero\", numero);\n          formData.append(\"texto\", texto);\n          formData.append(\"conexaoWhatsapp\", conexaoWhatsapp);\n          formData.append(\"dataAgendada\", date);\n          formData.append(\"imagem\", imagem);\n\n        await fetch(\"https://ia-n8n.j45er4.easypanel.host/webhook/b82bd08e-cfc5-4370-b79c-dbf5daea3ce8\", {\n            method: \"POST\",\n            body: formData\n        });\n        \n          const result = await response.text();\n          console.log(`Retorno do número ${numero}:`, result);\n\n          if (!response.ok) {\n            console.error(\"Erro ao enviar para:\", numero);\n          }\n\n          progress = ((i + 1) / numeros.length) * 100;\n          progressBar.style.width = progress + \"%\";\n        } catch (error) {\n          console.error(\"Erro inesperado ao enviar para:\", numero, error);\n        }\n      }\n\n      statusText.textContent = \"Disparo concluído!\";\n      alert(\"Disparo concluído!\");\n    });\n  </script>\n</body>\n</html>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -640,
+        0
+      ],
+      "id": "bc5daa49-f1b3-4b0f-9642-f2cbab6477f9",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "b82bd08e-cfc5-4370-b79c-dbf5daea3ce8",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -816,
+        176
+      ],
+      "id": "93f3ccea-f72f-4747-9acb-64d5ebd57372",
+      "name": "Webhook1",
+      "webhookId": "b82bd08e-cfc5-4370-b79c-dbf5daea3ce8"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        144,
+        240
+      ],
+      "id": "6992827b-c4c4-43d5-84da-fb72db469023",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Edit Fields').item.json.body.conexaoWhatsapp }}",
+        "remoteJid": "={{ $('Edit Fields').item.json.numero }}",
+        "messageText": "={{ $('Webhook1').item.json.body.texto }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        0,
+        240
+      ],
+      "id": "f8803fd6-0ed2-46f1-ba9f-d4e8fee219fe",
+      "name": "Enviar texto1",
+      "credentials": {
+        "evolutionApi": {
+          "id": "p0YHUb3zk2O6ke2q",
+          "name": "Evolution account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        432,
+        80
+      ],
+      "id": "857e0e08-1618-45b9-9ef8-7dbb46ab2b19",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "592713b3-bede-452f-ab90-465bc85675e0",
+              "name": "numero",
+              "value": "={{ $('Webhook1').item.json.body.numero }}",
+              "type": "string"
+            },
+            {
+              "id": "eaeabe5f-7989-4f81-863e-d7306ef182b8",
+              "name": "texto",
+              "value": "={{ $('Webhook1').item.json.body.texto }}",
+              "type": "string"
+            },
+            {
+              "id": "56b36c16-24be-46a0-b415-12d3d30a782a",
+              "name": "resultado",
+              "value": "={{ $json.resultado }}",
+              "type": "number"
+            },
+            {
+              "id": "ea9afd38-39dd-40a1-a98c-c0b89c215d31",
+              "name": "body.conexaoWhatsapp",
+              "value": "={{ $('Webhook1').item.json.body.conexaoWhatsapp }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -336,
+        176
+      ],
+      "id": "a6d23bd1-4e8a-4ef0-98c2-167778f6771f",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7a842463-250f-4887-b795-e74eff527428",
+              "leftValue": "={{ $('Extract from File').item.json.data }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -176,
+        176
+      ],
+      "id": "1e036fbc-e6e6-41ac-9f8b-cb2402c6ec6f",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-image",
+        "instanceName": "={{ $('Edit Fields').item.json.body.conexaoWhatsapp }}",
+        "remoteJid": "={{ $('Edit Fields').item.json.numero }}",
+        "media": "={{ $json.url }}",
+        "caption": "={{ $('Edit Fields').item.json.texto }}",
+        "options_message": {
+          "delay": "={{ $('Edit Fields').item.json.resultado }}"
+        }
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        288,
+        80
+      ],
+      "id": "6e5056ad-13ec-453d-beea-d757bed04f59",
+      "name": "Enviar imagem",
+      "credentials": {
+        "evolutionApi": {
+          "id": "p0YHUb3zk2O6ke2q",
+          "name": "Evolution account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d0893802-e911-4f6a-8f1a-b83e239916dd",
+              "name": "url",
+              "value": "={{ $json.data.medium.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        144,
+        80
+      ],
+      "id": "858388ef-647c-4376-8e69-4ed30ce8730e",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "from datetime import datetime, timezone, timedelta\n\ndata_str = _('Webhook1').first().json.body.dataAgendada\n\n# Fuso do Brasil\ntz_br = timezone(timedelta(hours=-3))\n\n# Data agendada COM fuso\ndt = datetime.fromisoformat(data_str).replace(tzinfo=tz_br)\n\ntimestamp_ms = int(dt.timestamp() * 1000)\n\n# Agora no mesmo fuso\nagora_br = datetime.now(tz_br)\nagora_br_ms = int(agora_br.timestamp() * 1000)\n\ndiferenca = timestamp_ms - agora_br_ms\n\nreturn {\n  \"agendada_ms\": timestamp_ms,\n  \"agora_ms\": agora_br_ms,\n  \"resultado\": diferenca\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        176
+      ],
+      "id": "3dcd083c-759e-450b-84ea-f156c7070bc3",
+      "name": "Code in Python (Beta)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.imgbb.com/1/upload",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "ed78a38c806458fa76f6f4da5400e017"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image",
+              "value": "={{ $('Extract from File').item.json.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        0,
+        80
+      ],
+      "id": "fe8e38f8-e042-48f7-ac36-72ab3b76b167",
+      "name": "HTTP Request1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "binaryPropertyName": "imagem",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -656,
+        176
+      ],
+      "id": "a8650daf-3486-4aa8-b7fa-2fc76da7b8eb",
+      "name": "Extract from File",
+      "alwaysOutputData": true,
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Enviar texto1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar texto1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook2": {
+      "main": [
+        []
+      ]
+    },
+    "Enviar imagem": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Enviar imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python (Beta)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code in Python (Beta)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "a39c8729-0fe0-43d9-bedd-607f08fcd204",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "283aacce4eb4350f25fbe3921634197b27b42d2b0f4cf6a545a83b6f8234af34"
+  },
+  "id": "AYII3UKEK2IELehM",
+  "tags": []
+}
